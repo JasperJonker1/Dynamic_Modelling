@@ -22,7 +22,7 @@ rad.json
 TestResults.xml
 .idea
 
-__pycache__/
+tumor_models/__pycache__
 *.pyc
 *.pyo
 *.pyd
