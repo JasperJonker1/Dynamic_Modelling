@@ -10,7 +10,81 @@ class TumorGrowthModel(ABC):
     def dVdt(self, V: float, t: float) -> float:
         pass
 
+class LinearGrowthModel(TumorGrowthModel):
+    """
+    Lineaire groei:
+        dV/dt = c
+    """
+    def __init__(self, c=1.0):
+        self.c = c
 
+    def dVdt(self, V, t):
+        return self.c
+
+
+class ExponentialGrowthModel(TumorGrowthModel):
+    """
+    Exponentiële groei:
+        dV/dt = c * V
+    """
+    def __init__(self, c=1.0):
+        self.c = c
+
+    def dVdt(self, V, t):
+        return self.c * V
+
+
+class MendelsohnGrowthModel(TumorGrowthModel):
+    """
+    Mendelsohn groei:
+        dV/dt = c * V^d
+    """
+    def __init__(self, c=1.0, d=1.0):
+        self.c = c
+        self.d = d
+
+    def dVdt(self, V, t):
+        return self.c * (V ** self.d)
+
+
+class ExponentialSaturatingModel(TumorGrowthModel):
+    """
+    Exponentieel afvlakkende groei:
+        dV/dt = c * (V_max - V)
+    """
+    def __init__(self, c=1.0, Vmax=1.0):
+        self.c = c
+        self.Vmax = Vmax
+
+    def dVdt(self, V, t):
+        return self.c * (self.Vmax - V)
+
+
+class LogisticGrowthModel(TumorGrowthModel):
+    """
+    Logistische groei:
+        dV/dt = c * V * (V_max - V)
+    """
+    def __init__(self, c=1.0, Vmax=1.0):
+        self.c = c
+        self.Vmax = Vmax
+
+    def dVdt(self, V, t):
+        return self.c * V * (self.Vmax - V)
+
+
+class MontrollGrowthModel(TumorGrowthModel):
+    """
+    Montroll groei:
+        dV/dt = c * V * (V_max^d - V^d)
+    """
+    def __init__(self, c=1.0, Vmax=1.0, d=1.0):
+        self.c = c
+        self.Vmax = Vmax
+        self.d = d
+
+    def dVdt(self, V, t):
+        return self.c * V * (self.Vmax**self.d - V**self.d)
 class VonBertalanffyModel(TumorGrowthModel):
     def __init__(self, c=1.0, d=1.0):
         self.c = c

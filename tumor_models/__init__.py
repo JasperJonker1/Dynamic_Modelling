@@ -16,12 +16,14 @@ from .models import (
     SurfaceLimitedModel,
     AlleeModel,
     LinearLimitedModel,
+    LinearGrowthModel,
+    ExponentialGrowthModel,
+    MendelsohnGrowthModel,
+    ExponentialSaturatingModel,
+    LogisticGrowthModel,
+    MontrollGrowthModel,
 )
-
-
-
-
-
+    
 __all__ = [
     # Models
     "TumorGrowthModel",
@@ -31,4 +33,10 @@ __all__ = [
     "SurfaceLimitedModel",
     "AlleeModel",
     "LinearLimitedModel",
+    "LinearGrowthModel",
+    "ExponentialGrowthModel",
+    "MendelsohnGrowthModel",
+    "ExponentialSaturatingModel",
+    "LogisticGrowthModel",
+    "MontrollGrowthModel",
 ]
