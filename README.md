@@ -1,4 +1,5 @@
 # Dynamic_Modelling
+# Moddelen 
 ## Lineaire groei
 [Linaire groei](https://www.wiskundeacademie.nl/lesmethode/getal-en-ruimte/havo-a/10-groei/10-1-lineaire-en-exponentiele-groei) is een groei die per tijdseenheid dezelfde helling heeft woordoor de groei consant is. 
 ## Winkunde model
@@ -137,4 +138,47 @@ $$
 $$
 De parameter 
 d bepaalt hoe snel de afremming inzet: een groter d betekent dat de groei sterker wordt gedempt. Het model wordt soms gebruikt als eenvoudige rationele saturatie­functie wanneer een beperkt remmend effect gewenst is
+## Oppervlakte-gelimiteerde groei
 
+Dit model gaat ervan uit dat groei afhankelijk is van het oppervlak van de tumor. Naarmate de tumor groter wordt, neemt de toevoer van zuurstof en nutriënten relatief af, waardoor de groei afremt.
+
+## Wiskundig model
+$$
+\frac{\text{d}V}{\text{d}t} = c \cdot \frac{V}{\left( V + d \right)^\frac{1}{3}}
+$$
+Kernidee: groei vertraagt doordat het oppervlak (∝ V2/3V2/3) relatief kleiner wordt ten opzichte van het volume.
+
+## Von Bertalanffy groei
+
+Een klassiek biologisch model waarbij groei evenredig is aan oppervlak en verlies evenredig aan volume.
+
+## Wiskundig model
+kernidee:
+
+- cV2/3: aanvoer via oppervlak (groei)
+
+- dV: metabolisch verlies (krimp)-resulteert in een geleidelijke afvlakking naar een evenwichtsvolume.
+$$
+\frac{\text{d}V}{\text{d}t} = c \cdot V^\frac{2}{3} - d \cdot V
+$$
+## Gompertz groei
+
+Een van de meest gebruikte modellen voor tumorgroei. Beschrijft snelle initiële groei, gevolgd door een steeds sterker wordende logaritmische remming.
+
+## Wiskundig model
+$$
+\frac{\text{d}V}{\text{d}t} = c \cdot V \cdot \ln \left( \frac{V_\max}{V} \right)
+$$
+Betekenis van de termen
+
+- c – groeiconstante
+- V – huidig tumorvolume
+- Vmax – maximale waarde / verzadigingsniveau
+
+### Interpretatie
+De groeisnelheid is evenredig met het huidige volume V.
+De factor
+ln(VVmax) wordt kleiner naarmate V groter wordt.
+
+Hierdoor daalt de groei exponentieel en nadert V langzaam 
+Vmax⁡.
