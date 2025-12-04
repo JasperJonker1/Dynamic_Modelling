@@ -19,7 +19,8 @@ class LinearGrowthModel(TumorGrowthModel):
         self.c = c
 
     def dVdt(self, V, t):
-        return self.c
+        return [(0, max(V)/max(t) * 2)]
+
 
 
 class ExponentialGrowthModel(TumorGrowthModel):
@@ -31,7 +32,8 @@ class ExponentialGrowthModel(TumorGrowthModel):
         self.c = c
 
     def dVdt(self, V, t):
-        return self.c * V
+        return [(0, 0.1)]
+
 
 
 class MendelsohnGrowthModel(TumorGrowthModel):
@@ -44,7 +46,13 @@ class MendelsohnGrowthModel(TumorGrowthModel):
         self.d = d
 
     def dVdt(self, V, t):
-        return self.c * (V ** self.d)
+        if V < 0:
+            V = 0.0          
+        if V > 1e6:
+            V = 1e6         
+        return [(0.0, 0.01), (0.0, 1.5)]
+
+
 
 
 class ExponentialSaturatingModel(TumorGrowthModel):
@@ -70,7 +78,8 @@ class LogisticGrowthModel(TumorGrowthModel):
         self.Vmax = Vmax
 
     def dVdt(self, V, t):
-        return self.c * V * (self.Vmax - V)
+        return [(0, 0.1), (max(V)*0.8, max(V)*2)]
+
 
 
 class MontrollGrowthModel(TumorGrowthModel):
@@ -100,7 +109,11 @@ class GompertzLesModel(TumorGrowthModel):
         self.cap = cap
 
     def dVdt(self, V, t):
-        return self.c * V * log(self.cap / V)
+        if V <= 0:
+            V = 1e-9
+        return [(0, 0.1), (max(V)*0.5, max(V)*2)]
+
+
 
 
 class GompertzPaperModel(TumorGrowthModel):
@@ -109,7 +122,10 @@ class GompertzPaperModel(TumorGrowthModel):
         self.beta = beta
 
     def dVdt(self, V, t):
+        if V < 0:
+         V = 0.0
         return self.alpha * math.exp(-self.beta * t) * V
+
 
 
 class SurfaceLimitedModel(TumorGrowthModel):
@@ -128,7 +144,7 @@ class AlleeModel(TumorGrowthModel):
         self.Vmax = Vmax
 
     def dVdt(self, V, t):
-        return self.c * (V - self.Vmin) * (self.Vmax - V)
+        return [(0,0.1), (min(V)*0.5, min(V)*2), (max(V)*0.8, max(V)*1.5)]
 
 
 class LinearLimitedModel(TumorGrowthModel):

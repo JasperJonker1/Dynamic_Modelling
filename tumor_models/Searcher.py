@@ -1,159 +1,255 @@
 from random import gauss
-from Solver import Solver
-import models
+from typing import Sequence, Dict, Optional
+from .Solver import Solver
+from . import models          
 from matplotlib import pyplot as plt
+import numpy as np
 
 
 class Searcher:
-
-    def __init__(self, real_vals, time_values, n_params, model, predict_function=None):
-        self.real_values = real_vals
-        self.time_values = time_values
+    def __init__(
+        self,
+        real_vals: Sequence[float],
+        time_values: Sequence[float],
+        n_params: int,
+        model,
+        predict_function: Optional[str] = None,
+    ):
+        """
+        Parameters
+        ----------
+        real_vals : lijst van gemeten V(t)
+        time_values : lijst van tijdstippen
+        n_params : aantal te optimaliseren parameters
+        model : modelklasse (bijv. models.VonBertalanffyModel)
+        predict_function : 'runge-kutta', 'heun' of None (Euler)
+        """
+        self.real_values = list(real_vals)
+        self.time_values = list(time_values)
         self.n_params = n_params
         self.model = model
         self.predictor = predict_function
 
     def mean_squared_error(self, *params):
-        solver = Solver(len(self.real_values) + 1, (self.time_values[-1] - self.time_values[0]), self.model,
-                        self.real_values[0], self.time_values[0], *params)
-        if self.predictor == "runge-kutta":
-            ts, predicted_values = solver.runge_kutta_function()
-        elif self.predictor == "heun":
-            ts, predicted_values = solver.heun_function()
-        else:
-            ts, predicted_values = solver.euler_function()
+        
 
-        sum_squared_error = 0.0
-        for predict_val, real_val in zip(predicted_values, self.real_values):
-            error = predict_val - real_val
-            sum_squared_error += error * error
-        mse = sum_squared_error / (len(predicted_values))
-        return abs(mse)
+        # 1. Solver run met voldoende resolutie
+        try:
+            solver = Solver(
+                2000,  # meer stappen → nauwkeurige tijd-as
+                (self.time_values[-1] - self.time_values[0]),
+                self.model,
+                self.real_values[0],
+                self.time_values[0],
+                *params
+            )
 
-    def random_search_one(self):
+            # Kies methode
+            if self.predictor == "runge-kutta":
+                t_pred, V_pred = solver.runge_kutta_function()
+            elif self.predictor == "heun":
+                t_pred, V_pred = solver.heun_function()
+            else:
+                t_pred, V_pred = solver.euler_function()
+
+        except:
+            return float("inf")
+
+        # 2. INTERPOLATIE naar de echte tijdspunten
+        try:
+            V_interp = np.interp(self.time_values, t_pred, V_pred)
+        except:
+            return float("inf")
+
+        # 3. Log-MSE berekenen
+        sumsq = 0.0
+        for p, r in zip(V_interp, self.real_values):
+            if p <= 0: p = 1e-9
+            if r <= 0: r = 1e-9
+            diff = np.log(p) - np.log(r)
+            sumsq += diff * diff
+
+        return sumsq / len(self.real_values)
+
+
+    
+    # ------------------------------------------------------------
+    # 1. Random search per parameter
+    # ------------------------------------------------------------
+
+    def random_search_one(self, sigma: float = 1.0, max_tries: int = 10_000) -> Dict[int, float]:
         """
-        finds optimal parameters of a curve by randomly changing the parameters
-        :return: found optimal parameters
+        Optimaliseer parameters één voor één door random updates.
+        :return: dict {index: waarde}
         """
         params = {i: 0.0 for i in range(self.n_params)}
-        error_rate = self.mean_squared_error(*params)
+        error_rate = self.mean_squared_error(*params.values())
 
-        # loop through the parameters to find the best of each individual parameter
         for i in range(self.n_params):
             tries = 0
-            while True:
-                tries += 1
+            while tries < max_tries:
                 new_params = params.copy()
-                # create new parameter randomly
-                new_params[i] = params[i] + gauss(mu=1.0, sigma=1.0)
+                # maak nieuwe parameter via een Gauss-stap
+                new_params[i] = params[i] + gauss(0.0, sigma)
                 new_error_rate = self.mean_squared_error(*new_params.values())
-                # replace parameter if new parameter gives lower error rate
+
                 if new_error_rate < error_rate:
                     params[i] = new_params[i]
                     error_rate = new_error_rate
-                    tries = 0
-                if tries > 10000:
-                    break
+                    tries = 0  # reset als we beter zijn
+                else:
+                    tries += 1
         return params
 
-    def pattern_search(self):
+    # ------------------------------------------------------------
+    # 2. Pattern search per parameter
+    # ------------------------------------------------------------
+
+    def pattern_search(self, initial_step: float = 10.0, tol: float = 1e-6) -> Dict[int, float]:
         """
-        finds optimal parameters by changing parameters
-        :return: calculated optimal parameters
+        Eenvoudige pattern search per parameter.
+        :return: dict met optimale parameters
         """
         params = {i: 0.0 for i in range(self.n_params)}
-        error_rate = self.mean_squared_error(*params)
+        error_rate = self.mean_squared_error(*params.values())
 
         for i in range(self.n_params):
-            step_size = 10.0
-            while True:
+            step_size = initial_step
+            while abs(step_size) > tol:
                 new_params = params.copy()
                 new_params[i] = params[i] + step_size
                 new_error_rate = self.mean_squared_error(*new_params.values())
+
                 if new_error_rate < error_rate:
                     params[i] = new_params[i]
                     error_rate = new_error_rate
                 else:
-                    step_size *= -0.8
-                if -1e-6 < step_size < 1e-6:
-                    break
+                    step_size *= -0.8  # keer om en maak kleiner
         return params
 
-    def random_search_all(self):
+    # ------------------------------------------------------------
+    # 3. Random search over alle parameters tegelijk
+    # ------------------------------------------------------------
+
+    def random_search_all(
+        self,
+        sigma: float = 0.01,
+        max_tries: int = 1000,
+    ) -> dict[int, float]:
         """
-        finds optimal parameters of a curve by randomly changing the parameters
-        :return: found optimal parameters
+        Hill-climbing random search: alle parameters tegelijk updaten.
+
+        :param sigma: standaardafwijking van de Gauss-stap.
+        :param max_tries: max aantal opeenvolgende mislukte pogingen.
+        :return: dict met gevonden parameters {index: waarde}
         """
+        # start met alle parameters op 0.0
         params = {i: 0.0 for i in range(self.n_params)}
-        error_rate = self.mean_squared_error(*params)
+        error_rate = self.mean_squared_error(*params.values())
+
+        # extra veiligheid: als hier al iets misgaat, meteen stoppen
+        if error_rate is None or not isinstance(error_rate, (int, float)):
+            error_rate = float("inf")
 
         tries = 0
-        while tries < 1000:
-            new_params = {key: val + gauss(sigma=0.01) for key, val in params.items()}
+        while tries < max_tries:
+            new_params = {
+                key: val + gauss(0.0, sigma)  # kleine gauss-stap rond huidige waarde
+                for key, val in params.items()
+            }
             new_error_rate = self.mean_squared_error(*new_params.values())
+
+            # als er iets misgaat in MSE → beschouw als heel slecht
+            if new_error_rate is None or not isinstance(new_error_rate, (int, float)):
+                new_error_rate = float("inf")
+
             if new_error_rate < error_rate:
                 params = new_params
                 error_rate = new_error_rate
-                tries = 0
-            tries += 1
+                tries = 0  # reset bij verbetering
+            else:
+                tries += 1
+
         return params
 
-    def pattern_search_all(self):
-        """
-        finds optimal parameters by changing parameters
-        :return: calculated optimal parameters
-        """
-        # set default
-        params = {i: 0.0 for i in range(self.n_params)}
-        step_size = {i: 10.0 for i in range(self.n_params)}
-        error_rate = self.mean_squared_error(*params)
+    # ------------------------------------------------------------
+    # 4. Pattern search over alle parameters tegelijk
+    # ------------------------------------------------------------
 
-        while max(step_size.values()) < 1e-6 or min(step_size.values()) > -1e-6:
+    def pattern_search_all(
+        self,
+        initial_step: float = 10.0,
+        tol: float = 1e-6,
+    ) -> Dict[int, float]:
+        """
+        Pattern search over alle parameters tegelijk.
+
+        :return: dict met optimale parameters
+        """
+        params = {i: 0.0 for i in range(self.n_params)}
+        step_size = {i: initial_step for i in range(self.n_params)}
+        error_rate = self.mean_squared_error(*params.values())
+
+        # Blijf zoeken zolang er minstens één stap nog groot is
+        while max(abs(s) for s in step_size.values()) > tol:
             for key in params:
                 new_params = params.copy()
+                # eerst vooruit
                 new_params[key] = params[key] + step_size[key]
                 new_error_rate = self.mean_squared_error(*new_params.values())
+
                 if new_error_rate < error_rate:
                     params = new_params
                     error_rate = new_error_rate
                     step_size[key] *= 1.2
                     continue
+
+                # dan achteruit
                 new_params[key] = params[key] - step_size[key]
                 new_error_rate = self.mean_squared_error(*new_params.values())
+
                 if new_error_rate < error_rate:
                     params = new_params
                     error_rate = new_error_rate
                     step_size[key] *= -1.2
                     continue
+
+                # beide richtingen slechter → stap verkleinen
                 step_size[key] *= 0.2
+
         return params
 
 
+# ----------------------------------------------------------------------
+# Demo / test
+# ----------------------------------------------------------------------
+
 def main():
+    # "echte" parameters voor Von Bertalanffy
     real_states = [2.0, 1.0]
+
+    # genereer "data" met Runge-Kutta
     solver = Solver(1000, 10, models.VonBertalanffyModel, 1e-7, 0, *real_states)
     time, real = solver.runge_kutta_function()
-    # print(real)
 
-    searcher = Searcher(real, time, 2, models.VonBertalanffyModel)
+    # zoek parameters terug uit de data
+    searcher = Searcher(real, time, 2, models.VonBertalanffyModel, predict_function="runge-kutta")
     found_vals = searcher.random_search_all()
 
     found_solver = Solver(1000, 10, models.VonBertalanffyModel, 1e-7, 0, *found_vals.values())
     f_time, found = found_solver.runge_kutta_function()
-    # print(found)
 
-    # print(found_vals)
-    plt.plot(time, real, '-k', label='Exact')
-    plt.plot(time[-1], real[-1], 'ok')
-    plt.plot(f_time, found, '.:r', label='Direct search')
-    plt.axhline(0.0, lw=0.5, color='k')
-    plt.axvline(0.0, lw=0.5, color='k')
+    plt.plot(time, real, "-k", label="Exact")
+    plt.plot(f_time, found, ".:r", label="Random search fit")
+    plt.axhline(0.0, lw=0.5, color="k")
+    plt.axvline(0.0, lw=0.5, color="k")
     plt.grid(True)
     plt.legend()
-    plt.xlabel('$t$')
-    plt.ylabel('$y(t)$')
+    plt.xlabel("$t$")
+    plt.ylabel("$V(t)$")
     plt.show()
 
 
 if __name__ == "__main__":
     main()
+
