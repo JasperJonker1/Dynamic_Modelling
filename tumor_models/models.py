@@ -107,6 +107,8 @@ class GompertzLesModel(TumorGrowthModel):
     def __init__(self, c=1.0, cap=1000):
         self.c = c
         self.cap = cap
+        if cap < 0.0:
+            self.cap = 1e-6
 
     def dVdt(self, V, t):
         if V <= 0:
