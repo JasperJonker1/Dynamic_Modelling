@@ -3,7 +3,8 @@ from typing import Sequence, Dict, Optional
 import numpy as np
 from random import gauss
 from .Solver import Solver
-
+import numpy as np
+import math
 
 class Searcher:
     def __init__(
@@ -40,21 +41,27 @@ class Searcher:
         except Exception:
             return float("inf")
 
+        # Interpolatie naar de echte tijdstippen
         try:
             V_interp = np.interp(self.time_values, t_pred, V_pred)
         except Exception:
             return float("inf")
 
-        sum_sq = 0.0
-        for p, r in zip(V_interp, self.real_values):
-            if p <= 0:
-                p = 1e-9
-            if r <= 0:
-                r = 1e-9
-            diff = np.log(p) - np.log(r)
-            sum_sq += diff * diff
+        V_pred = np.asarray(V_interp, dtype=float)
+        V_real = np.asarray(self.real_values, dtype=float)
 
-        return sum_sq / len(self.real_values)
+        # sanity checks
+        if np.any(~np.isfinite(V_pred)):
+            return float("inf")
+
+        # log-MSE, met clipping om log(0) te vermijden
+        V_pred = np.clip(V_pred, 1e-9, None)
+        V_real = np.clip(V_real, 1e-9, None)
+
+        diff = np.log(V_pred) - np.log(V_real)
+        mse = float(np.mean(diff * diff))
+        return mse
+
 
     def random_search_all(
         self,

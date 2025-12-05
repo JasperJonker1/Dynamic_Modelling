@@ -2,73 +2,114 @@ from Solver import Solver
 from Searcher import Searcher
 import models
 import sys
-from math import log
+from math import log, isfinite
 import inspect
 import csv
 
 
 def main():
     """
-    commandline input:
-    python3 Main.py csv_file.csv search_function criterion_function [predict_function]
-    search_function options: random / pattern
-    criterion_function options: BIC / AIC / AICc
-    predict_function [optional] options: runge-kutta / heun / euler (default)
-    :return: prints mean squared error and the BIC, AIC or AICc (depending on input) of all models from given input
-     to commandline.
+    Gebruik:
+      python3 Main.py data.csv search_function criterion [predict_function]
+
+    search_function : random | pattern
+    criterion       : BIC | AIC | AICc
+    predict_function (optioneel) : runge-kutta | heun | euler (default: euler/None)
     """
+
     user_args = sys.argv[1:]
+    if len(user_args) < 3:
+        print("Gebruik: Main.py data.csv search_function (random|pattern) criterion (BIC|AIC|AICc) [predict_function]")
+        sys.exit(1)
 
-    # get data from csv file
-    with open(user_args[0]) as csv_file:
-        volume, time_steps = csv.reader(csv_file)
+    csv_path = user_args[0]
+    search_method = user_args[1]
+    criterion = user_args[2]
+    predict_function = user_args[3] if len(user_args) > 3 else None
 
-    # convert to the right data types with list comprehension
-    volume = [float(i) for i in volume]
-    time_steps = [int(i) for i in time_steps]
+    # --- CSV inlezen ---
+    with open(csv_path, newline="") as csv_file:
+        reader = csv.reader(csv_file)
+        rows = list(reader)
 
-    n_steps = len(volume)
-    time = time_steps[-1] - time_steps[0]
+    if len(rows) < 2:
+        raise ValueError("CSV moet minstens twee rijen bevatten: eerste rij volumes, tweede rij tijdstippen.")
 
-    # define all models
-    all_models = [models.AlleeModel, models.SurfaceLimitedModel, models.VonBertalanffyModel, models.GompertzPaperModel,
-                  models.GompertzLesModel, models.LinearLimitedModel]
+    # eerste rij = volumes, tweede rij = tijd
+    volume = [float(i) for i in rows[0] if i.strip() != ""]
+    time_steps = [float(i) for i in rows[1] if i.strip() != ""]
 
-    mean_squared_error = {}
-    information_criterion = {}
+    if len(volume) != len(time_steps):
+        raise ValueError("Aantal volumes en tijdstippen in CSV komt niet overeen.")
 
-    predict_function = None
-    # assign predict function if given
-    if len(user_args) > 3:
-        predict_function = user_args[3]
+    n_obs = len(volume)
+    total_time = time_steps[-1] - time_steps[0]
 
-    # loop through all models and add the MSE and information criterion to the dicts
+    # --- modellenlijst ---
+    all_models = [
+        models.AlleeModel,
+        models.SurfaceLimitedModel,
+        models.VonBertalanffyModel,
+        models.GompertzPaperModel,
+        models.GompertzLesModel,
+        models.LinearLimitedModel,
+    ]
+
+    mse_dict = {}
+    ic_dict = {}
+
+    # --- modellen fitten ---
     for model in all_models:
+        # aantal parameters = #__init__-argumenten - 1 (self)
         k = len(inspect.signature(model.__init__).parameters) - 1
-        searcher = Searcher(volume, time_steps, k, model, predict_function)
-        if user_args[1] == 'random':
-            params = searcher.random_search_all()
-        elif user_args[1] == 'pattern':
-            params = searcher.pattern_search_all()
+
+        searcher = Searcher(
+            real_vals=volume,
+            time_values=time_steps,
+            n_params=k,
+            model=model,
+            predict_function=predict_function,
+        )
+
+        # parameters zoeken
+        if search_method == "random":
+            param_dict = searcher.random_search_all()
+        elif search_method == "pattern":
+            # alleen gebruiken als je pattern_search_all geïmplementeerd hebt
+            param_dict = searcher.pattern_search_all()
         else:
-            raise SyntaxError(f"Argument: {user_args[1]} is invallid")
+            raise SyntaxError(f"Argument: {search_method} is ongeldig (gebruik 'random' of 'pattern').")
 
-        predicted_solver = Solver(n_steps, time, model, volume[0], time_steps[0], *params)
-        predicted_time, predicted_volume = predicted_solver.runge_kutta_function()
+        params = list(param_dict.values())
 
-        mean_squared_error[model.__name__] = searcher.mean_squared_error(*params)
+        # MSE op de data
+        mse = searcher.mean_squared_error(*params)
+        mse_dict[model.__name__] = mse
 
-        if user_args[2] == "BIC":
-            information_criterion[model.__name__] = (n_steps * log(searcher.mean_squared_error(*params)) +
-                                                     k * log(len(predicted_volume)))
-        elif user_args[2] == "AIC":
-            information_criterion[model.__name__] = (n_steps * log(searcher.mean_squared_error(*params)) +
-                                                     k * 2)
-        elif user_args[2] == "AICc":
-            information_criterion[model.__name__] = (n_steps * log(searcher.mean_squared_error(*params)) +
-                                                     k * 2 * (n_steps / (n_steps - k - 1)))
-    print(mean_squared_error)
-    print(information_criterion)
+        # informatiecriterium (alleen als MSE zinvol is)
+        if (not isfinite(mse)) or mse <= 0:
+            ic_dict[model.__name__] = float("inf")
+            continue
+
+        if criterion == "BIC":
+            ic = n_obs * log(mse) + k * log(n_obs)
+        elif criterion == "AIC":
+            ic = n_obs * log(mse) + 2 * k
+        elif criterion == "AICc":
+            ic = n_obs * log(mse) + 2 * k * (n_obs / (n_obs - k - 1))
+        else:
+            raise ValueError(f"Onbekend criterium: {criterion}")
+
+        ic_dict[model.__name__] = ic
+
+    # --- resultaten printen ---
+    print("MSE per model:")
+    for name, mse in mse_dict.items():
+        print(f"  {name:20s}: {mse:.6g}")
+
+    print(f"\n{criterion} per model:")
+    for name, ic in ic_dict.items():
+        print(f"  {name:20s}: {ic:.6g}")
 
 
 if __name__ == "__main__":
