@@ -2,9 +2,9 @@
 tumor_models package
 
 Bevat:
-- groeimodellen (Gompertz, von Bertalanffy, enz.)
-- ODE-oplossers (Euler, Heun, Runge-Kutta)
-- Fit-functionaliteit (MSE, random search, ModelFitter)
+- groeimodellen (Gompertz, Von Bertalanffy, Logistic, enz.)
+- ODE-oplossers (Euler, Heun, Runge-Kutta) via Solver
+- Fit-functionaliteit (MSE, random search) via Searcher
 """
 
 # === Models ===
@@ -16,10 +16,19 @@ from .models import (
     SurfaceLimitedModel,
     AlleeModel,
     LinearLimitedModel,
+    LinearGrowthModel,
+    ExponentialGrowthModel,
+    MendelsohnGrowthModel,
+    ExponentialSaturatingModel,
+    LogisticGrowthModel,
+    MontrollGrowthModel,
 )
 
+# === Solver ===
+from .Solver import Solver
 
-
+# === Searcher (fitting) ===
+from .Searcher import Searcher
 
 
 __all__ = [
@@ -31,4 +40,14 @@ __all__ = [
     "SurfaceLimitedModel",
     "AlleeModel",
     "LinearLimitedModel",
+    "LinearGrowthModel",
+    "ExponentialGrowthModel",
+    "MendelsohnGrowthModel",
+    "ExponentialSaturatingModel",
+    "LogisticGrowthModel",
+    "MontrollGrowthModel",
+
+    # Solver + Searcher
+    "Solver",
+    "Searcher",
 ]
