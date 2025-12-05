@@ -1,8 +1,36 @@
 # Dynamic_Modelling
+Package voor het modelleren, simuleren en fitten van tumorgroei met verschillende klassieke groeimodellen.
+
+## Installatie en quick start
+
+### 1. Repository clonen
+
+```bash
+git clone https://github.com/jouwnaam/Dynamic_Modelling.git
+cd Dynamic_Modelling
+```
+
+```python
+from tumor_models import Solver, Searcher
+from tumor_models import GompertzLesModel, LogisticGrowthModel
+```
+# Biologische achtergrond van tumorgroei
+
+Tumorgroei ontstaat wanneer cellen ongecontroleerd gaan delen door genetische en epigenetische veranderingen. Een tumor is niet simpelweg een massa van delende cellen, maar een dynamisch systeem waarin de balans tussen celdeling, celdood, aanvoer van voedingsstoffen en interacties met de micro-omgeving voortdurend verandert.
+
+In de vroege fase van tumorgroei is meestal voldoende zuurstof en ruimte aanwezig, waardoor de groei relatief snel verloopt. Naarmate de tumor groter wordt, ontstaat er een gebrek aan nutriënten en zuurstof doordat diffusie via het oppervlak onvoldoende wordt. Dit leidt tot afname van de netto groeisnelheid, necrose in de kern en uiteindelijk de behoefte aan angiogenese (vorming van nieuwe bloedvaten). Hierdoor vertonen tumoren typisch drie groeifasen:
+
+Initiële exponentiële fase — snelle celdeling, weinig beperking.
+
+Sub-exponentiële fase — groei wordt vertraagd door ruimte- en nutrientlimitaties.
+
+Plateau fase — netto groei ≈ 0 doordat celdeling en celdood in evenwicht komen.
+
+Biologische processen zoals hypoxie, mechanische stress, immunologische interacties en therapierespons versterken deze dynamiek. Tumorgroeimodellen proberen deze biologische principes wiskundig te beschrijven. Simpele modellen zoals exponentiële groei passen bij vroege tumorontwikkeling, terwijl modellen als Gompertz, logistiek of Von Bertalanffy beter aansluiten bij tumoren waar groei wordt afgeremd door biologische beperkingen.
 # Moddelen 
 ## Lineaire groei
 [Linaire groei](https://www.wiskundeacademie.nl/lesmethode/getal-en-ruimte/havo-a/10-groei/10-1-lineaire-en-exponentiele-groei) is een groei die per tijdseenheid dezelfde helling heeft woordoor de groei consant is. 
-## Winkunde model
+### Winkunde model
 $$
 \frac{\text{d}V}{\text{d}t} = c
 $$s
@@ -16,7 +44,7 @@ waarbij
 Bij [exponentiële groei](https://www.wiskundeacademie.nl/lesmethode/getal-en-ruimte/havo-a/10-groei/10-1-lineaire-en-exponentiele-groei) neemt de hoeveelheid niet met een constant bedrag toe, maar met een vast percentage per tijdseenheid.
 Hoe groter het volume
 V wordt, hoe sneller de groei plaatsvindt. Dit maakt exponentiële groei veel sneller dan lineaire groei.
-## Wiskundig model
+### Wiskundig model
 $$
 \frac{\text{d}V}{\text{d}t} = c \cdot V
 $$
@@ -31,7 +59,7 @@ Het is een gegeneraliseerde vorm van sub-exponentiële groei: de tumor groeit sn
 0<d<1
 0<d<1).
 
-## Wiskundig model
+### Wiskundig model
 
 De algemene differentiaalvergelijking is:
 $$
@@ -48,7 +76,7 @@ waarbij
 [Exponentieel afvlakkende groei](https://nl.wikipedia.org/wiki/Exponenti%C3%ABle_groei) beschrijft een proces waarbij de groeisnelheid afneemt naarmate het volume toeneemt.
 Naarmate V(t) dichter bij de maximale waarde 
 Vmax komt, wordt de netto groei kleiner. Dit model wordt veel gebruikt wanneer er een natuurlijke limiet is aan de groei (bijv. door beperkte middelen of omgevingsfactoren).
-## Wiskundig model
+### Wiskundig model
 $$
 \frac{dV}{dt} = c \cdot \left( V_{\text{max}} - V \right)
 $$ 
@@ -58,7 +86,7 @@ waarbij
 - Vmax	​: de maximale omvang (carrying capacity)
 ## Logistische groei 
 [Logistische groei](https://www.hhofstede.nl/modules/logistischegroei.htm) beschrijft een proces waarbij een populatie (of tumorvolume) eerst snel groeit, maar waarvan de groei later afremt doordat er een maximale capaciteit bestaat.
-## Wiskundig model
+### Wiskundig model
 
 $$
 \frac{dV}{dt} = c \cdot V \cdot \left( V_{\text{max}} - V \right)
@@ -110,7 +138,7 @@ De populatie kan overleven, maar moeilijker.
 Er bestaat een kritische drempel (Allee-drempel).
 Als de populatie onder die drempel komt, is de groei negatief -> uitsterven wordt heel waarschijnlijk.
 
-## Wiskundig model (symmetrische vorm)
+### Wiskundig model (symmetrische vorm)
 
 Een veelgebruikte vereenvoudigde vorm van het Allee-effect is:
 $$
@@ -132,7 +160,7 @@ De waarde die over de tijd verandert.
 ## Lineair gelimiteerde groei
 Bij [lineair gelimiteerde groei](https://pmc.ncbi.nlm.nih.gov/articles/PMC6813171/) neemt de groeisnelheid toe met het volume, maar wordt deze direct beperkt door een saturatieterm in de noemer. Hierdoor groeit het systeem snel bij kleine waarden van 
 V maar vlakt de groei geleidelijk af wanneer V groter wordt. Het model beschrijft dus een vorm van mild begrensde groei, zonder een expliciete maximumcapaciteit zoals bij logistieke groei.
-## Wiskundig model 
+### Wiskundig model
 $$
 \frac{\text{d}V}{\text{d}t} = c \cdot \frac{V}{V + d}
 $$
@@ -140,9 +168,9 @@ De parameter
 d bepaalt hoe snel de afremming inzet: een groter d betekent dat de groei sterker wordt gedempt. Het model wordt soms gebruikt als eenvoudige rationele saturatie­functie wanneer een beperkt remmend effect gewenst is
 ## Oppervlakte-gelimiteerde groei
 
-Dit model gaat ervan uit dat groei afhankelijk is van het oppervlak van de tumor. Naarmate de tumor groter wordt, neemt de toevoer van zuurstof en nutriënten relatief af, waardoor de groei afremt.
+[Dit model](https://ascpt.onlinelibrary.wiley.com/doi/10.1002/psp4.12450) gaat ervan uit dat groei afhankelijk is van het oppervlak van de tumor. Naarmate de tumor groter wordt, neemt de toevoer van zuurstof en nutriënten relatief af, waardoor de groei afremt.
 
-## Wiskundig model
+### Wiskundig model
 $$
 \frac{\text{d}V}{\text{d}t} = c \cdot \frac{V}{\left( V + d \right)^\frac{1}{3}}
 $$
@@ -150,9 +178,9 @@ Kernidee: groei vertraagt doordat het oppervlak (∝ V2/3V2/3) relatief kleiner 
 
 ## Von Bertalanffy groei
 
-Een klassiek biologisch model waarbij groei evenredig is aan oppervlak en verlies evenredig aan volume.
+[Een klassiek biologisch model](https://ascpt.onlinelibrary.wiley.com/doi/10.1002/psp4.12450) waarbij groei evenredig is aan oppervlak en verlies evenredig aan volume.
 
-## Wiskundig model
+### Wiskundig model
 kernidee:
 
 - cV2/3: aanvoer via oppervlak (groei)
@@ -163,12 +191,13 @@ $$
 $$
 ## Gompertz groei
 
-Een van de meest gebruikte modellen voor tumorgroei. Beschrijft snelle initiële groei, gevolgd door een steeds sterker wordende logaritmische remming.
+Een van de meest gebruikte [modellen(https://ascpt.onlinelibrary.wiley.com/doi/10.1002/psp4.12450)] voor tumorgroei. Beschrijft snelle initiële groei, gevolgd door een steeds sterker wordende logaritmische remming.
 
-## Wiskundig model
+### Wiskundig model
 $$
-\frac{\text{d}V}{\text{d}t} = c \cdot V \cdot \ln \left( \frac{V_\max}{V} \right)
+\frac{dV}{dt} = c \cdot V \cdot \ln\left(\frac{V_{\text{max}}}{V}\right)
 $$
+
 Betekenis van de termen
 
 - c – groeiconstante
@@ -182,3 +211,124 @@ ln(VVmax) wordt kleiner naarmate V groter wordt.
 
 Hierdoor daalt de groei exponentieel en nadert V langzaam 
 Vmax⁡.
+
+# Fitting van tumorgroeimodellen aan data
+
+Om te bepalen welk groeimodel het best aansluit bij experimentele of klinische data, wordt elk model numeriek gesimuleerd en vervolgens vergeleken met de gemeten waarden. Dit gebeurt in meerdere stappen:
+
+## Numerieke oplossing van het model
+
+Elk model definieert een differentiaalvergelijking
+
+$$
+\frac{dV}{dt} = f(V, t; \theta)
+$$
+
+
+Omdat deze vergelijking niet analytisch oplosbaar is voor de meeste modellen, wordt de oplossing benaderd met numerieke methoden:
+
+- Euler
+
+- Heun (verbeterde Euler)
+
+- Runge–Kutta 4 (standaardmethode)
+
+Deze solver berekent een vloeiende tijdreeks 
+Vmodel(t)
+## Vergelijken met data (log-MSE)
+
+Omdat tumorvolumes vaak sterk variëren (soms over meerdere ordes van grootte), gebruiken we logaritmische Mean Squared Error (log-MSE):
+$$
+\text{MSE}_{\log}
+= \frac{1}{N}
+\sum_{i=1}^{N}
+\left[
+\ln\big(V_{\text{model}}(t_i)\big)
+-
+\ln\big(V_{\text{data}}(t_i)\big)
+\right]^2
+$$
+
+Voordelen:
+
+- voorkomt dat grote waarden te veel gewicht krijgen
+
+- voorkomt negatieve volumes (log clamp)
+
+- beter geschikt voor biologisch exponentiële processen
+
+Om dit te berekenen wordt de modeloplossing eerst geïnterpoleerd naar de exacte tijdstippen van de datapunten.
+## Parameteroptimalisatie met hill-climbing random search
+
+Omdat de foutfunctie vaak niet glad is en meerdere minima kan bevatten, gebruiken we een robuust maar eenvoudig optimalisatie-algoritme:
+
+Hill-climbing random search
+
+- begin met een willekeurig parameterpunt binnen grenzen
+
+- voeg kleine willekeurige Gauss-stappen toe aan alle parameters
+
+- accepteer een nieuwe parameter alleen als de fout kleiner wordt
+
+- herhaal dit tot er geen verbetering meer optreedt
+
+Dit algoritme werkt goed voor:
+
+- niet-lineaire groeimodellen
+
+- ruis in data
+- modellen zonder analytische oplossing
+## Vergelijken van modellen met informatiecriteria
+
+Voor modelselectie worden AIC, BIC en AICc gebruikt:
+
+- AIC: straft extra parameters licht
+
+- BIC: zwaardere straf → kiest simpelere modellen
+
+- AICc: verbeterde AIC voor kleine datasets (zoals bij tumorgroeidata)
+
+Formules:
+$$
+\text{AIC}
+=
+n \cdot \ln(\text{MSE})
++
+2k
+$$
+
+$$
+\text{BIC}
+=
+n \cdot \ln(\text{MSE})
++
+k \cdot \ln(n)
+$$
+
+$$
+\text{AICc}
+=
+\text{AIC}
++
+\frac{2k(k+1)}{\,n - k - 1\,}
+$$
+
+waarbij
+- n = aantal datapunten
+
+- k = aantal parameters van het model
+
+Het model met de laagste waarde wordt beschouwd als het best passende.
+## Samenvatting van het proces
+
+1. ODE-model kiezen
+
+2. Modelparameters optimaliseren via random search
+
+3. Numerieke simulatie uitvoeren
+
+4. MSE berekenen
+
+5. AIC/BIC vergelijken
+
+6. Beste model selecteren en visualiseren

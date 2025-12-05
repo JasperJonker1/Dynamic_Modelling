@@ -1,4 +1,3 @@
-# cli_compare_models.py
 from tumor_models import Solver, Searcher
 from tumor_models import (
     AlleeModel,
@@ -8,36 +7,58 @@ from tumor_models import (
     GompertzLesModel,
     LinearLimitedModel,
 )
-import math
-import inspect
 import sys
+import csv
+import inspect
+from math import log
 
 
 def main():
     """
     Gebruik:
-        python cli_compare_models.py <n_steps> <time> <init_volume> random <BIC|AIC|AICc>
+        python3 Main.py data.csv search_function criterion [predict_function]
 
-    Voorbeeld:
-        python cli_compare_models.py 1000 10 1e-7 random BIC
+    Waar:
+      - data.csv : CSV met twee regels:
+           rij 1: volumes  (V1,V2,...) 
+           rij 2: tijdstippen (t1,t2,...)
+      - search_function : random  of  pattern
+      - criterion       : BIC / AIC / AICc
+      - predict_function (optioneel): runge-kutta / heun / euler (default: euler)
+
+    Output:
+      - dictionary met MSE per model
+      - dictionary met gekozen informatiecriterium per model
     """
+
     user_args = sys.argv[1:]
-    if len(user_args) != 5:
-        print("Gebruik: n_steps time init_volume random (BIC|AIC|AICc)")
+    if len(user_args) < 3:
+        print("Gebruik: Main.py data.csv search_function (random|pattern) criterion (BIC|AIC|AICc) [predict_function]")
         sys.exit(1)
 
-    n_steps = int(user_args[0])
-    total_time = float(user_args[1])
-    init_volume = float(user_args[2])
-    method = user_args[3]
-    crit = user_args[4]
+    csv_path = user_args[0]
+    search_method = user_args[1]
+    criterion = user_args[2]      
+    predict_function = user_args[3] if len(user_args) > 3 else None
 
-    # synthetic "data" met Von Bertalanffy
-    init_time = 0.0
-    true_params = (2.0, 1.6)
-    data_solver = Solver(n_steps, total_time, VonBertalanffyModel,
-                         init_volume, init_time, *true_params)
-    time_steps, volume = data_solver.runge_kutta_function()
+
+    with open(csv_path, newline="") as f:
+        reader = csv.reader(f)
+        rows = list(reader)
+
+    if len(rows) < 2:
+        raise ValueError("CSV moet minstens twee rijen bevatten: eerste volumes, tweede tijdstippen.")
+
+    # hier ga ik uit van: eerste rij = volumes, tweede rij = tijdstippen
+    volume = [float(x) for x in rows[0] if x.strip() != ""]
+    time_steps = [float(x) for x in rows[1] if x.strip() != ""]
+
+    if len(volume) != len(time_steps):
+        raise ValueError("Aantal volumes en tijdstippen in CSV komt niet overeen.")
+
+    n = len(volume)
+    total_time = time_steps[-1] - time_steps[0]
+
 
     all_models = [
         AlleeModel,
@@ -54,39 +75,48 @@ def main():
     for model in all_models:
         k = len(inspect.signature(model.__init__).parameters) - 1
 
-        searcher = Searcher(volume, time_steps, k, model, predict_function="runge-kutta")
+        searcher = Searcher(
+            real_vals=volume,
+            time_values=time_steps,
+            n_params=k,
+            model=model,
+            predict_function=predict_function,  # None/euler, heun, runge-kutta
+        )
 
-        if method == "random":
-            params = searcher.random_search_all()
-            param_list = list(params.values())
+        # parameters zoeken
+        if search_method == "random":
+            param_dict = searcher.random_search_all()
+        elif search_method == "pattern":
+            param_dict = searcher.pattern_search_all()
         else:
-            raise SyntaxError(f"Argument: {method} is ongeldig")
+            raise SyntaxError(f"Argument: {search_method} is ongeldig (gebruik 'random' of 'pattern').")
 
-        mse = searcher.mean_squared_error(*param_list)
+        params = list(param_dict.values())
+
+        # MSE op de data
+        mse = searcher.mean_squared_error(*params)
         mse_dict[model.__name__] = mse
 
-        n = len(volume)
-
-        if crit == "BIC":
-            ic = n * math.log(mse) + k * math.log(n)
-        elif crit == "AIC":
-            ic = n * math.log(mse) + 2 * k
-        elif crit == "AICc":
-            ic = n * math.log(mse) + 2 * k * (n / (n - k - 1))
+        # informatiecriterium: gebruik n = aantal observaties
+        if criterion == "BIC":
+            ic = n * log(mse) + k * log(n)
+        elif criterion == "AIC":
+            ic = n * log(mse) + 2 * k
+        elif criterion == "AICc":
+            ic = n * log(mse) + 2 * k * (n / (n - k - 1))
         else:
-            raise ValueError(f"Onbekend criterium: {crit}")
+            raise ValueError(f"Onbekend criterium: {criterion}")
 
         ic_dict[model.__name__] = ic
 
     print("MSE per model:")
     for name, mse in mse_dict.items():
-        print(f"  {name:20s}  {mse:.6g}")
+        print(f"  {name:20s}: {mse:.6g}")
 
-    print(f"\n{crit} per model:")
+    print(f"\n{criterion} per model:")
     for name, ic in ic_dict.items():
-        print(f"  {name:20s}  {ic:.6g}")
+        print(f"  {name:20s}: {ic:.6g}")
 
 
 if __name__ == "__main__":
     main()
-
