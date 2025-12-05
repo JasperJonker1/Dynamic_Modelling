@@ -10,56 +10,41 @@ class TumorGrowthModel(ABC):
     def dVdt(self, V: float, t: float) -> float:
         pass
 
+
 class LinearGrowthModel(TumorGrowthModel):
-    """
-    Lineaire groei:
-        dV/dt = c
-    """
+    """dV/dt = c"""
     def __init__(self, c=1.0):
         self.c = c
 
     def dVdt(self, V, t):
-        return [(0, max(V)/max(t) * 2)]
-
+        return self.c
 
 
 class ExponentialGrowthModel(TumorGrowthModel):
-    """
-    Exponentiële groei:
-        dV/dt = c * V
-    """
+    """dV/dt = c * V"""
     def __init__(self, c=1.0):
         self.c = c
 
     def dVdt(self, V, t):
-        return [(0, 0.1)]
-
+        return self.c * V
 
 
 class MendelsohnGrowthModel(TumorGrowthModel):
-    """
-    Mendelsohn groei:
-        dV/dt = c * V^d
-    """
+    """dV/dt = c * V^d"""
     def __init__(self, c=1.0, d=1.0):
         self.c = c
         self.d = d
 
     def dVdt(self, V, t):
         if V < 0:
-            V = 0.0          
+            V = 0.0
         if V > 1e6:
-            V = 1e6         
-        return [(0.0, 0.01), (0.0, 1.5)]
-
-
+            V = 1e6
+        return self.c * (V ** self.d)
 
 
 class ExponentialSaturatingModel(TumorGrowthModel):
-    """
-    Exponentieel afvlakkende groei:
-        dV/dt = c * (V_max - V)
-    """
+    """dV/dt = c * (Vmax - V)"""
     def __init__(self, c=1.0, Vmax=1.0):
         self.c = c
         self.Vmax = Vmax
@@ -69,68 +54,64 @@ class ExponentialSaturatingModel(TumorGrowthModel):
 
 
 class LogisticGrowthModel(TumorGrowthModel):
-    """
-    Logistische groei:
-        dV/dt = c * V * (V_max - V)
-    """
+    """dV/dt = c * V * (Vmax - V)"""
     def __init__(self, c=1.0, Vmax=1.0):
         self.c = c
         self.Vmax = Vmax
 
     def dVdt(self, V, t):
-        return [(0, 0.1), (max(V)*0.8, max(V)*2)]
-
+        return self.c * V * (self.Vmax - V)
 
 
 class MontrollGrowthModel(TumorGrowthModel):
-    """
-    Montroll groei:
-        dV/dt = c * V * (V_max^d - V^d)
-    """
+    """dV/dt = c * V * (Vmax^d - V^d)"""
     def __init__(self, c=1.0, Vmax=1.0, d=1.0):
         self.c = c
         self.Vmax = Vmax
         self.d = d
 
     def dVdt(self, V, t):
-        return self.c * V * (self.Vmax**self.d - V**self.d)
+        return self.c * V * (self.Vmax ** self.d - V ** self.d)
+
+
 class VonBertalanffyModel(TumorGrowthModel):
+    """dV/dt = c * V^(2/3) - d * V"""
     def __init__(self, c=1.0, d=1.0):
         self.c = c
         self.d = d
 
     def dVdt(self, V, t):
+        if V < 0:
+            V = 0.0
         return self.c * (V ** (2/3)) - self.d * V
 
 
 class GompertzLesModel(TumorGrowthModel):
+    """dV/dt = c * V * ln(cap / V)"""
     def __init__(self, c=1.0, cap=1000):
         self.c = c
-        self.cap = cap
-        if cap < 0.0:
-            self.cap = 1e-6
+        self.cap = cap if cap > 0 else 1e-6
 
     def dVdt(self, V, t):
         if V <= 0:
             V = 1e-9
-        return [(0, 0.1), (max(V)*0.5, max(V)*2)]
-
-
+        return self.c * V * log(self.cap / V)
 
 
 class GompertzPaperModel(TumorGrowthModel):
+    """dV/dt = alpha * exp(-beta t) * V"""
     def __init__(self, alpha=1.0, beta=1.0):
         self.alpha = alpha
         self.beta = beta
 
     def dVdt(self, V, t):
         if V < 0:
-         V = 0.0
+            V = 0.0
         return self.alpha * math.exp(-self.beta * t) * V
 
 
-
 class SurfaceLimitedModel(TumorGrowthModel):
+    """dV/dt = c * V / (V + d)^(1/3)"""
     def __init__(self, c=1.0, d=10.0):
         self.c = c
         self.d = d
@@ -140,16 +121,18 @@ class SurfaceLimitedModel(TumorGrowthModel):
 
 
 class AlleeModel(TumorGrowthModel):
+    """dV/dt = c * (V - Vmin) * (Vmax - V)"""
     def __init__(self, c=0.01, Vmin=10.0, Vmax=100.0):
         self.c = c
         self.Vmin = Vmin
         self.Vmax = Vmax
 
     def dVdt(self, V, t):
-        return [(0,0.1), (min(V)*0.5, min(V)*2), (max(V)*0.8, max(V)*1.5)]
+        return self.c * (V - self.Vmin) * (self.Vmax - V)
 
 
 class LinearLimitedModel(TumorGrowthModel):
+    """dV/dt = c * V / (V + d)"""
     def __init__(self, c=1.0, d=10.0):
         self.c = c
         self.d = d
